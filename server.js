@@ -67,8 +67,10 @@ const bookingSchema = new mongoose.Schema({
   placeOfReturn: { type: String, required: true },
   rentalDate: { type: Date, required: true },
   returnDate: { type: Date, required: true },
+  phoneNumber: { type: String, required: true }, // ✅ Yangi qo‘shildi
   createdAt: { type: Date, default: Date.now },
 });
+
 
 const Booking = mongoose.model("Booking", bookingSchema);
 
