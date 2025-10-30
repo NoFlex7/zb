@@ -1,0 +1,28 @@
+{
+  "name": "rent-car-api",
+  "version": "1.0.0",
+  "description": "Simple Rent Car REST API built with Node.js and Express",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "mongodb",
+    "rentcar"
+  ],
+  "author": "You",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "mongoose": "^8.19.2",
+    "mongoosenode": "^1.0.1",
+    "server.js": "^1.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
