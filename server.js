@@ -155,7 +155,7 @@ app.get("/api/bookings", async (req, res) => {
 });
 
 // Add new booking
-app.post("/api/bookings", async (req, res) => {
+app.post("/api/booking", async (req, res) => {
   try {
     const booking = new Booking(req.body);
     await booking.save();
