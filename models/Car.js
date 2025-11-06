@@ -1,20 +1,20 @@
 const mongoose = require("mongoose");
 
 const carSchema = new mongoose.Schema({
-  // Basic information
-  name: { type: String, required: true },              // e.g. BMW M3
-  brand: { type: String, required: true },             // e.g. BMW
+
+  name: { type: String, required: true },            
+  brand: { type: String, required: true },            
   category: {
     type: String,
     required: true,
-    enum: ["Sedan", "Cabriolet", "Pickup", "SUV", "Minivan"], // allowed categories
+    enum: ["Sedan", "Cabriolet", "Pickup", "SUV", "Minivan"], 
   },
-  pricePerDay: { type: Number, required: true },       // e.g. 25 (USD per day)
+  pricePerDay: { type: Number, required: true },       
 
-  // Images
-  imageUrl: { type: String },                          // main image
+
+  imageUrl: { type: String },                          
   gallery: {
-    type: [String],                                    // must contain at least 4 image URLs
+    type: [String],                                   
     validate: {
       validator: function (arr) {
         return arr.length >= 4;
@@ -24,23 +24,22 @@ const carSchema = new mongoose.Schema({
     required: true,
   },
 
-  // Technical specifications
-  gearBox: { type: String, default: "Automatic" },     // e.g. Automatic / Manual
-  fuel: { type: String, default: "Petrol" },           // e.g. Petrol, Diesel, Electric
-  doors: { type: Number, default: 4 },                 // number of doors
-  seats: { type: Number, default: 5 },                 // number of seats
-  airConditioner: { type: Boolean, default: true },    // AC availability
-  distance: { type: Number, default: 0 },              // e.g. 500 (km)
+  gearBox: { type: String, default: "Automatic" },   
+  fuel: { type: String, default: "Petrol" },         
+  doors: { type: Number, default: 4 },                 
+  seats: { type: Number, default: 5 },                 
+  airConditioner: { type: Boolean, default: true },    
+  distance: { type: Number, default: 0 },          
 
-  // Car equipment / features
+ 
   equipment: [
     {
-      type: String,                                    // e.g. ABS, Air Bags, Cruise Control
+      type: String,                                   
     },
   ],
 
-  // Availability
-  available: { type: Boolean, default: true },         // available for rent or not
+
+  available: { type: Boolean, default: true },        
 
   createdAt: { type: Date, default: Date.now },
 });
