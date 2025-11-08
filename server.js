@@ -225,3 +225,40 @@ app.listen(PORT, async () => {
     console.log("✅ 12 ta viloyat dastlabki ma'lumot sifatida qo'shildi");
   }
 });
+
+// ================================
+// Static Route: Income (Oylik daromadlar)
+// ================================
+
+const incomes = [
+  { month: "Yanvar", totalIncome: 12000000 },
+  { month: "Fevral", totalIncome: 9500000 },
+  { month: "Mart", totalIncome: 14300000 },
+  { month: "Aprel", totalIncome: 10200000 },
+  { month: "May", totalIncome: 17800000 },
+  { month: "Iyun", totalIncome: 16500000 },
+  { month: "Iyul", totalIncome: 19500000 },
+  { month: "Avgust", totalIncome: 18600000 },
+  { month: "Sentyabr", totalIncome: 15200000 },
+  { month: "Oktyabr", totalIncome: 16100000 },
+  { month: "Noyabr", totalIncome: 17400000 },
+  { month: "Dekabr", totalIncome: 21000000 },
+];
+
+// Barcha oylik daromadlarni olish
+app.get("/api/income", (req, res) => {
+  res.json(incomes);
+});
+
+// Bitta oy daromadini olish
+app.get("/api/income/:month", (req, res) => {
+  const monthName = req.params.month;
+  const month = incomes.find(
+    (m) => m.month.toLowerCase() === monthName.toLowerCase()
+  );
+  if (!month)
+    return res
+      .status(404)
+      .json({ message: `${monthName} oyi uchun ma'lumot topilmadi` });
+  res.json(month);
+});
