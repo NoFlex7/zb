@@ -301,6 +301,27 @@ app.delete("/api/income/:month", (req, res) => {
   incomes.splice(index, 1);
   res.json({ message: `${monthName} oyi daromadi o‘chirildi` });
 });
+app.post("/api/income", (req, res) => {
+  const { month, totalIncome } = req.body;
+
+  if (!month || !totalIncome) {
+    return res.status(400).json({ message: "Month va totalIncome kiritilishi shart" });
+  }
+
+  // Agar oylik ma'lumot oldin mavjud bo'lsa, xatolik yuborish
+  const existing = incomes.find(
+    (m) => m.month.toLowerCase() === month.toLowerCase()
+  );
+  if (existing) {
+    return res
+      .status(400)
+      .json({ message: `${month} oyi uchun ma'lumot allaqachon mavjud` });
+  }
+
+  const newIncome = { month, totalIncome };
+  incomes.push(newIncome);
+  res.status(201).json({ message: "✅ Income qo'shildi", income: newIncome });
+});
 
 // ================================
 // Root Route
