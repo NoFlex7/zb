@@ -64,7 +64,6 @@ const bookingSchema = new mongoose.Schema({
 
 const Booking = mongoose.model("Booking", bookingSchema);
 
-// Region model
 const regionSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
 });
@@ -148,6 +147,20 @@ app.post("/api/comments", async (req, res) => {
   res.status(201).json(comment);
 });
 
+app.put("/api/comments/:id", async (req, res) => {
+  const updated = await Comment.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+  });
+  if (!updated) return res.status(404).json({ message: "Comment not found" });
+  res.json(updated);
+});
+
+app.delete("/api/comments/:id", async (req, res) => {
+  const deleted = await Comment.findByIdAndDelete(req.params.id);
+  if (!deleted) return res.status(404).json({ message: "Comment not found" });
+  res.json({ message: "Comment deleted successfully" });
+});
+
 // ================================
 // Routes: Bookings
 // ================================
@@ -169,6 +182,20 @@ app.post("/api/booking", async (req, res) => {
     console.error("❌ Error creating booking:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
+});
+
+app.put("/api/bookings/:id", async (req, res) => {
+  const updated = await Booking.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+  });
+  if (!updated) return res.status(404).json({ message: "Booking not found" });
+  res.json(updated);
+});
+
+app.delete("/api/bookings/:id", async (req, res) => {
+  const deleted = await Booking.findByIdAndDelete(req.params.id);
+  if (!deleted) return res.status(404).json({ message: "Booking not found" });
+  res.json({ message: "Booking deleted successfully" });
 });
 
 // ================================
@@ -196,6 +223,14 @@ app.post("/api/regions", async (req, res) => {
   }
 });
 
+app.put("/api/regions/:id", async (req, res) => {
+  const updated = await Region.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+  });
+  if (!updated) return res.status(404).json({ message: "Region not found" });
+  res.json(updated);
+});
+
 app.delete("/api/regions/:id", async (req, res) => {
   const deleted = await Region.findByIdAndDelete(req.params.id);
   if (!deleted) return res.status(404).json({ message: "Region not found" });
@@ -203,34 +238,10 @@ app.delete("/api/regions/:id", async (req, res) => {
 });
 
 // ================================
-// Root Route
-// ================================
-
-app.get("/", (req, res) => {
-  res.send("🚗 RentCar API is running successfully!");
-});
-
-// ================================
-// Server
-// ================================
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, async () => {
-  console.log(`🚗 RentCar API Server running on http://localhost:${PORT}`);
-
-  // Agar hali viloyatlar saqlanmagan bo'lsa, dastlabki 12 viloyatni qo'shish
-  const count = await Region.countDocuments();
-  if (count === 0) {
-    await Region.insertMany(regionsList.map((name) => ({ name })));
-    console.log("✅ 12 ta viloyat dastlabki ma'lumot sifatida qo'shildi");
-  }
-});
-
-// ================================
 // Static Route: Income (Oylik daromadlar)
 // ================================
 
-const incomes = [
+let incomes = [
   { month: "Yanvar", totalIncome: 12000000 },
   { month: "Fevral", totalIncome: 9500000 },
   { month: "Mart", totalIncome: 14300000 },
@@ -261,4 +272,55 @@ app.get("/api/income/:month", (req, res) => {
       .status(404)
       .json({ message: `${monthName} oyi uchun ma'lumot topilmadi` });
   res.json(month);
+});
+
+// Oyni yangilash (PUT)
+app.put("/api/income/:month", (req, res) => {
+  const monthName = req.params.month;
+  const index = incomes.findIndex(
+    (m) => m.month.toLowerCase() === monthName.toLowerCase()
+  );
+  if (index === -1)
+    return res
+      .status(404)
+      .json({ message: `${monthName} oyi uchun ma'lumot topilmadi` });
+  incomes[index] = { ...incomes[index], ...req.body };
+  res.json(incomes[index]);
+});
+
+// Oyni o‘chirish (DELETE)
+app.delete("/api/income/:month", (req, res) => {
+  const monthName = req.params.month;
+  const index = incomes.findIndex(
+    (m) => m.month.toLowerCase() === monthName.toLowerCase()
+  );
+  if (index === -1)
+    return res
+      .status(404)
+      .json({ message: `${monthName} oyi uchun ma'lumot topilmadi` });
+  incomes.splice(index, 1);
+  res.json({ message: `${monthName} oyi daromadi o‘chirildi` });
+});
+
+// ================================
+// Root Route
+// ================================
+
+app.get("/", (req, res) => {
+  res.send("🚗 RentCar API is running successfully!");
+});
+
+// ================================
+// Server
+// ================================
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, async () => {
+  console.log(`🚗 RentCar API Server running on http://localhost:${PORT}`);
+
+  const count = await Region.countDocuments();
+  if (count === 0) {
+    await Region.insertMany(regionsList.map((name) => ({ name })));
+    console.log("✅ 12 ta viloyat dastlabki ma'lumot sifatida qo'shildi");
+  }
 });
