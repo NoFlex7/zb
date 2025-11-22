@@ -57,14 +57,15 @@ const commentSchema = new mongoose.Schema({
 const Comment = mongoose.model("Comment", commentSchema);
 
 const bookingSchema = new mongoose.Schema({
-  carType: { type: String, required: true },
-  placeOfRental: { type: String, required: true },
-  placeOfReturn: { type: String, required: true },
-  rentalDate: { type: Date, required: true },
-  returnDate: { type: Date, required: true },
-  phoneNumber: { type: String, required: true },
+  carType: { type: mongoose.Schema.Types.ObjectId, ref: "Car", required: true },
+  placeOfRental: String,
+  placeOfReturn: String,
+  rentalDate: Date,
+  returnDate: Date,
+  phoneNumber: String,
   createdAt: { type: Date, default: Date.now },
 });
+
 const Booking = mongoose.model("Booking", bookingSchema);
 
 const regionSchema = new mongoose.Schema({
@@ -365,7 +366,7 @@ app.post("/api/income", async (req, res) => {
       const lower = month.toLowerCase();
       if (!monthMap[lower])
         return res.status(400).json({ message: "Oy nomi noto‘g‘ri" });
-      month = monthMap[lower];
+      month = monthMap[lower];    
     }
 
     const income = new Income({ year, month, day, totalIncome });
