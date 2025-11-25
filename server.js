@@ -87,7 +87,7 @@ const incomeSchema = new mongoose.Schema({
 
 incomeSchema.index({ year: 1, month: 1, day: 1 }, { unique: true });
 
-// JSON formatda createdAt ni faqat YYYY-MM-DD shaklida chiqarish
+// createdAt → YYYY-MM-DD format
 incomeSchema.set("toJSON", {
   transform: (doc, ret) => {
     if (ret.createdAt) {
@@ -98,6 +98,10 @@ incomeSchema.set("toJSON", {
 });
 
 const Income = mongoose.model("Income", incomeSchema);
+
+// ================================
+// Regions list for initial insert
+// ================================
 
 const regionsList = [
   "Toshkent",
@@ -119,8 +123,7 @@ const regionsList = [
 // ================================
 
 app.get("/api/cars", async (req, res) => {
-  const cars = await Car.find();
-  res.json(cars);
+  res.json(await Car.find());
 });
 
 app.get("/api/cars/:id", async (req, res) => {
@@ -134,7 +137,7 @@ app.get("/api/cars/category/:category", async (req, res) => {
   const cars = await Car.find({
     category: { $regex: new RegExp("^" + category + "$", "i") },
   });
-  if (cars.length === 0)
+  if (!cars.length)
     return res.status(404).json({ message: "No cars found in this category" });
   res.json(cars);
 });
@@ -164,10 +167,10 @@ app.delete("/api/cars/:id", async (req, res) => {
 // ================================
 
 app.get("/api/comments/:carId", async (req, res) => {
-  const carComments = await Comment.find({ carId: req.params.carId }).sort({
+  const comments = await Comment.find({ carId: req.params.carId }).sort({
     createdAt: -1,
   });
-  res.json(carComments);
+  res.json(comments);
 });
 
 app.post("/api/comments", async (req, res) => {
@@ -195,8 +198,7 @@ app.delete("/api/comments/:id", async (req, res) => {
 // ================================
 
 app.get("/api/bookings", async (req, res) => {
-  const bookings = await Booking.find().sort({ createdAt: -1 });
-  res.json(bookings);
+  res.json(await Booking.find().sort({ createdAt: -1 }));
 });
 
 app.post("/api/booking", async (req, res) => {
@@ -208,7 +210,6 @@ app.post("/api/booking", async (req, res) => {
       booking,
     });
   } catch (error) {
-    console.error("❌ Error creating booking:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
@@ -232,8 +233,7 @@ app.delete("/api/bookings/:id", async (req, res) => {
 // ================================
 
 app.get("/api/regions", async (req, res) => {
-  const regions = await Region.find();
-  res.json(regions);
+  res.json(await Region.find());
 });
 
 app.post("/api/regions", async (req, res) => {
@@ -247,10 +247,9 @@ app.post("/api/regions", async (req, res) => {
 });
 
 // ================================
-// Routes: Income (string oy nomlari bilan)
+// Routes: Income
 // ================================
 
-// Oy nomlarini mapping qilish
 const monthMap = {
   january: 1,
   february: 2,
@@ -266,14 +265,11 @@ const monthMap = {
   december: 12,
 };
 
-// Yil bo‘yicha daromadlar
+// ---- Get year income ----
 app.get("/api/income/:year", async (req, res) => {
   try {
-    const { year } = req.params;
-    const incomes = await Income.find({ year: parseInt(year) }).sort({
-      month: 1,
-      day: 1,
-    });
+    const year = parseInt(req.params.year);
+    const incomes = await Income.find({ year }).sort({ month: 1, day: 1 });
 
     if (!incomes.length)
       return res.status(404).json({ message: `${year} yil uchun ma'lumot yo'q` });
@@ -287,29 +283,28 @@ app.get("/api/income/:year", async (req, res) => {
       grouped[monthName].push(inc);
     });
 
-    res.json({ year: parseInt(year), incomesByMonth: grouped });
+    res.json({ year, incomesByMonth: grouped });
   } catch (error) {
-    res.status(500).json({ message: "Xatolik yuz berdi", error: error.message });
+    res.status(500).json({ message: "Xatolik yuz berdi" });
   }
 });
 
-// Oy nomi bo‘yicha daromadlar
+// ---- Get month income ----
 app.get("/api/income/:year/:month", async (req, res) => {
   try {
-    const { year, month } = req.params;
-    const monthNum = monthMap[month.toLowerCase()];
+    const year = parseInt(req.params.year);
+    const monthNum = monthMap[req.params.month.toLowerCase()];
     if (!monthNum)
-      return res.status(400).json({ message: "Oy nomi noto‘g‘ri kiritilgan" });
+      return res.status(400).json({ message: "Oy nomi noto‘g‘ri" });
 
-    const incomes = await Income.find({
-      year: parseInt(year),
-      month: monthNum,
-    }).sort({ day: 1 });
+    const incomes = await Income.find({ year, month: monthNum }).sort({
+      day: 1,
+    });
 
     if (!incomes.length)
-      return res
-        .status(404)
-        .json({ message: `${year}-${month} uchun daromad topilmadi` });
+      return res.status(404).json({
+        message: `${year}-${req.params.month} uchun daromad topilmadi`,
+      });
 
     const totalMonthlyIncome = incomes.reduce(
       (sum, inc) => sum + inc.totalIncome,
@@ -317,67 +312,85 @@ app.get("/api/income/:year/:month", async (req, res) => {
     );
 
     res.json({
-      year: parseInt(year),
-      month: month.toLowerCase(),
+      year,
+      month: req.params.month.toLowerCase(),
       totalMonthlyIncome,
       dailyIncomes: incomes,
     });
   } catch (error) {
-    res.status(500).json({ message: "Xatolik yuz berdi", error: error.message });
+    res.status(500).json({ message: "Xatolik yuz berdi" });
   }
 });
 
-// Oy nomi va kun bo‘yicha daromad
+// ---- Get day income ----
 app.get("/api/income/:year/:month/:day", async (req, res) => {
   try {
-    const { year, month, day } = req.params;
-    const monthNum = monthMap[month.toLowerCase()];
-    if (!monthNum)
-      return res.status(400).json({ message: "Oy nomi noto‘g‘ri kiritilgan" });
+    const year = parseInt(req.params.year);
+    const monthNum = monthMap[req.params.month.toLowerCase()];
+    const day = parseInt(req.params.day);
 
-    const income = await Income.findOne({
-      year: parseInt(year),
-      month: monthNum,
-      day: parseInt(day),
-    });
+    if (!monthNum)
+      return res.status(400).json({ message: "Oy nomi noto‘g‘ri" });
+
+    const income = await Income.findOne({ year, month: monthNum, day });
 
     if (!income)
-      return res
-        .status(404)
-        .json({ message: `${year}-${month}-${day} uchun daromad topilmadi` });
+      return res.status(404).json({
+        message: `${year}-${req.params.month}-${day} uchun daromad topilmadi`,
+      });
 
     res.json(income);
   } catch (error) {
-    res.status(500).json({ message: "Xatolik yuz berdi", error: error.message });
+    res.status(500).json({ message: "Xatolik yuz berdi" });
   }
 });
 
-// Yangi daromad qo‘shish (month string yoki number bo‘lishi mumkin)
+// ---- Add income ----
 app.post("/api/income", async (req, res) => {
   try {
     let { year, month, day, totalIncome } = req.body;
+
     if (!year || !month || !day || totalIncome === undefined)
       return res
         .status(400)
         .json({ message: "year, month, day va totalIncome kiritilishi shart" });
 
-    // Oy nomini raqamga o‘tkazamiz
     if (typeof month === "string") {
-      const lower = month.toLowerCase();
-      if (!monthMap[lower])
+      if (!monthMap[month.toLowerCase()])
         return res.status(400).json({ message: "Oy nomi noto‘g‘ri" });
-      month = monthMap[lower];    
+      month = monthMap[month.toLowerCase()];
     }
 
     const income = new Income({ year, month, day, totalIncome });
     await income.save();
-    res.status(201).json({ message: "✅ Daromad qo‘shildi", income });
+    res.status(201).json({ message: "Daromad qo‘shildi", income });
   } catch (error) {
     if (error.code === 11000)
       return res
         .status(400)
-        .json({ message: "Bu sana uchun daromad allaqachon mavjud" });
-    res.status(500).json({ message: "Xatolik yuz berdi", error: error.message });
+        .json({ message: "Bu sana uchun daromad mavjud" });
+    res.status(500).json({ message: "Xatolik yuz berdi" });
+  }
+});
+
+// ---- UPDATE Income (frontend uchun kerak) ----
+app.put("/api/income/:id", async (req, res) => {
+  try {
+    const updatedIncome = await Income.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+
+    if (!updatedIncome)
+      return res.status(404).json({ message: "Income not found" });
+
+    res.json({
+      message: "Income updated successfully",
+      income: updatedIncome,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating income" });
   }
 });
 
@@ -400,6 +413,6 @@ app.listen(PORT, async () => {
   const count = await Region.countDocuments();
   if (count === 0) {
     await Region.insertMany(regionsList.map((name) => ({ name })));
-    console.log("✅ 12 ta viloyat dastlabki ma'lumot sifatida qo‘shildi");
+    console.log("✅ 12 ta viloyat qo‘shildi");
   }
 });
