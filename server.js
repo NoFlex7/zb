@@ -15,7 +15,7 @@ app.use(express.json());
 // ================================
 // MONGO CONNECTION
 // ================================
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://yourUser:yourPassword@cluster0.mongodb.net/";
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://sadullaernazarovich_db_user:VRQs0YbVZv6IJVbI@cluster0.v9fmj3c.mongodb.net/";
 mongoose.set("strictQuery", true);
 mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB connected successfully"))
