@@ -290,30 +290,30 @@ app.get("/api/income/:year", async (req, res) => {
 });
 
 // ---- Get month income ----
+// ---- Get month income ----
 app.get("/api/income/:year/:month", async (req, res) => {
   try {
     const year = parseInt(req.params.year);
-    const monthNum = monthMap[req.params.month.toLowerCase()];
-    if (!monthNum)
-      return res.status(400).json({ message: "Oy nomi noto‘g‘ri" });
+    let monthNum = parseInt(req.params.month);
 
-    const incomes = await Income.find({ year, month: monthNum }).sort({
-      day: 1,
-    });
+    // Agar raqam bo'lmasa → string bo'ladi
+    if (isNaN(monthNum)) {
+      monthNum = monthMap[req.params.month.toLowerCase()];
+    }
+
+    if (!monthNum)
+      return res.status(400).json({ message: "Oy noto‘g‘ri formatda" });
+
+    const incomes = await Income.find({ year, month: monthNum }).sort({ day: 1 });
 
     if (!incomes.length)
-      return res.status(404).json({
-        message: `${year}-${req.params.month} uchun daromad topilmadi`,
-      });
+      return res.status(404).json({ message: `${year}-${req.params.month} uchun daromad topilmadi` });
 
-    const totalMonthlyIncome = incomes.reduce(
-      (sum, inc) => sum + inc.totalIncome,
-      0
-    );
+    const totalMonthlyIncome = incomes.reduce((sum, inc) => sum + inc.totalIncome, 0);
 
     res.json({
       year,
-      month: req.params.month.toLowerCase(),
+      month: monthNum,
       totalMonthlyIncome,
       dailyIncomes: incomes,
     });
@@ -326,11 +326,16 @@ app.get("/api/income/:year/:month", async (req, res) => {
 app.get("/api/income/:year/:month/:day", async (req, res) => {
   try {
     const year = parseInt(req.params.year);
-    const monthNum = monthMap[req.params.month.toLowerCase()];
+    let monthNum = parseInt(req.params.month);
     const day = parseInt(req.params.day);
 
+    // Agar string bo‘lsa → mapdan qidiramiz
+    if (isNaN(monthNum)) {
+      monthNum = monthMap[req.params.month.toLowerCase()];
+    }
+
     if (!monthNum)
-      return res.status(400).json({ message: "Oy nomi noto‘g‘ri" });
+      return res.status(400).json({ message: "Oy noto‘g‘ri formatda" });
 
     const income = await Income.findOne({ year, month: monthNum, day });
 
@@ -344,6 +349,7 @@ app.get("/api/income/:year/:month/:day", async (req, res) => {
     res.status(500).json({ message: "Xatolik yuz berdi" });
   }
 });
+
 
 // ---- Add income ----
 app.post("/api/income", async (req, res) => {
