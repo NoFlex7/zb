@@ -15,7 +15,9 @@ app.use(express.json());
 // ================================
 // MONGO CONNECTION
 // ================================
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://sadullaernazarovich_db_user:VRQs0YbVZv6IJVbI@cluster0.v9fmj3c.mongodb.net/";
+const MONGO_URI = process.env.MONGO_URI || 
+  "mongodb+srv://sadullaernazarovich_db_user:VRQs0YbVZv6IJVbI@cluster0.v9fmj3c.mongodb.net/rentcar?retryWrites=true&w=majority";
+
 mongoose.set("strictQuery", true);
 mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB connected successfully"))
@@ -55,11 +57,12 @@ const Comment = mongoose.model("Comment", commentSchema);
 // Booking
 const bookingSchema = new mongoose.Schema({
   carType: { type: mongoose.Schema.Types.ObjectId, ref: "Car", required: true },
-  placeOfRental: String,
-  placeOfReturn: String,
-  rentalDate: Date,
-  returnDate: Date,
-  phoneNumber: String,
+  carName: { type: String, required: true },
+  placeOfRental: { type: String, required: true },
+  placeOfReturn: { type: String, required: true },
+  rentalDate: { type: Date, required: true },
+  returnDate: { type: Date, required: true },
+  phoneNumber: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
 });
 const Booking = mongoose.model("Booking", bookingSchema);
@@ -116,8 +119,15 @@ app.delete("/api/cars/:id", async (req,res) => {
 });
 
 // ---------- COMMENTS ----------
-app.get("/api/comments/:carId", async (req,res) => res.json(await Comment.find({carId:req.params.carId}).sort({createdAt:-1})));
-app.post("/api/comments", async (req,res) => { const comment = new Comment(req.body); await comment.save(); res.status(201).json(comment); });
+app.get("/api/comments/:carId", async (req,res) => {
+  const comments = await Comment.find({carId:req.params.carId}).sort({createdAt:-1});
+  res.json(comments);
+});
+app.post("/api/comments", async (req,res) => {
+  const comment = new Comment(req.body);
+  await comment.save();
+  res.status(201).json(comment);
+});
 app.put("/api/comments/:id", async (req,res) => {
   const updated = await Comment.findByIdAndUpdate(req.params.id, req.body, {new:true});
   if(!updated) return res.status(404).json({message:"Comment not found"});
@@ -131,12 +141,42 @@ app.delete("/api/comments/:id", async (req,res) => {
 
 // ---------- BOOKINGS ----------
 app.get("/api/bookings", async (req,res) => res.json(await Booking.find().sort({createdAt:-1})));
-app.post("/api/booking", async (req,res) => { const booking = new Booking(req.body); await booking.save(); res.status(201).json(booking); });
-app.put("/api/bookings/:id", async (req,res) => {
-  const updated = await Booking.findByIdAndUpdate(req.params.id, req.body, {new:true});
-  if(!updated) return res.status(404).json({message:"Booking not found"});
-  res.json(updated);
+
+app.post("/api/bookings", async (req,res) => {
+  try {
+    const car = await Car.findById(req.body.carType);
+    if (!car) return res.status(404).json({ message: "Car not found" });
+
+    const booking = new Booking({
+      ...req.body,
+      carName: car.name,
+    });
+
+    await booking.save();
+    res.status(201).json(booking);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error creating booking", error: err.message });
+  }
 });
+
+app.put("/api/bookings/:id", async (req,res) => {
+  try {
+    const updateData = { ...req.body };
+    if(req.body.carType) {
+      const car = await Car.findById(req.body.carType);
+      if(!car) return res.status(404).json({message:"Car not found"});
+      updateData.carName = car.name;
+    }
+    const updated = await Booking.findByIdAndUpdate(req.params.id, updateData, {new:true});
+    if(!updated) return res.status(404).json({message:"Booking not found"});
+    res.json(updated);
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({message:"Error updating booking", error:err.message});
+  }
+});
+
 app.delete("/api/bookings/:id", async (req,res) => {
   const deleted = await Booking.findByIdAndDelete(req.params.id);
   if(!deleted) return res.status(404).json({message:"Booking not found"});
@@ -145,15 +185,23 @@ app.delete("/api/bookings/:id", async (req,res) => {
 
 // ---------- REGIONS ----------
 app.get("/api/regions", async (req,res) => res.json(await Region.find()));
+
 app.post("/api/regions", async (req,res) => {
-  try { const region = new Region(req.body); await region.save(); res.status(201).json(region); } 
-  catch(err) { res.status(400).json({message:"Error adding region", error:err.message}); }
+  try {
+    const region = new Region(req.body);
+    await region.save();
+    res.status(201).json(region);
+  } catch(err) {
+    res.status(400).json({message:"Error adding region", error:err.message});
+  }
 });
+
 app.put("/api/regions/:id", async (req,res) => {
   const updated = await Region.findByIdAndUpdate(req.params.id, req.body, {new:true});
   if(!updated) return res.status(404).json({message:"Region not found"});
   res.json(updated);
 });
+
 app.delete("/api/regions/:id", async (req,res) => {
   const deleted = await Region.findByIdAndDelete(req.params.id);
   if(!deleted) return res.status(404).json({message:"Region not found"});
@@ -169,11 +217,18 @@ app.get("/api/income/:year/:month/:day", async (req,res) => {
   if(!income) return res.status(404).json({message:"Income not found"});
   res.json(income);
 });
+
 app.post("/api/income", async (req,res) => {
   try {
     const {year, month, day, totalIncome} = req.body;
-    if(!year || !month || !day || totalIncome===undefined) return res.status(400).json({message:"Missing fields"});
-    const income = new Income({year, month, day, totalIncome});
+    if(!year || !month || !day || totalIncome === undefined) 
+      return res.status(400).json({message:"Missing fields"});
+
+    const income = new Income({
+      year, month, day,
+      totalIncome: totalIncome ?? 0
+    });
+
     await income.save();
     res.status(201).json(income);
   } catch(err) {
@@ -181,11 +236,13 @@ app.post("/api/income", async (req,res) => {
     res.status(500).json({message:"Error saving income"});
   }
 });
+
 app.put("/api/income/:id", async (req,res) => {
   const updated = await Income.findByIdAndUpdate(req.params.id, req.body, {new:true});
   if(!updated) return res.status(404).json({message:"Income not found"});
   res.json(updated);
 });
+
 app.delete("/api/income/:id", async (req,res) => {
   const deleted = await Income.findByIdAndDelete(req.params.id);
   if(!deleted) return res.status(404).json({message:"Income not found"});
@@ -199,10 +256,9 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, async () => {
   console.log(`🚗 RentCar API running on http://localhost:${PORT}`);
 
-  // Insert regions if empty
-  const count = await Region.countDocuments();
-  if(count === 0) {
-    await Region.insertMany(regionsList.map(name=>({name})));
-    console.log("✅ 12 regions added");
+  // Insert regions if empty (safe upsert)
+  for (const name of regionsList) {
+    await Region.updateOne({ name }, { name }, { upsert: true });
   }
+  console.log("✅ Regions initialized");
 });
