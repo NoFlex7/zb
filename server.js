@@ -16,7 +16,7 @@ app.use(express.json());
 // MONGO CONNECTION
 // ================================
 const MONGO_URI = process.env.MONGO_URI || 
-  "mongodb+srv://sadullaernazarovich_db_user:VRQs0YbVZv6IJVbI@cluster0.v9fmj3c.mongodb.net/rentcar?retryWrites=true&w=majority";
+  "mongodb+srv://sadullaernazarovich_db_user:VRQs0YbVZv6IJVbI@cluster0.v9fmj3c.mongodb.net/";
 
 mongoose.set("strictQuery", true);
 mongoose.connect(MONGO_URI)
